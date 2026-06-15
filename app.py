@@ -20,15 +20,30 @@ def tela_inicial():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     
-    # 1. Busca de Pacientes (com ou sem filtro de substring)
+    # 1. Busca de Pacientes com LEFT JOIN para trazer a herança (Substitua esta parte na sua tela_inicial)
     termo_busca = request.args.get('busca')
     if termo_busca:
-        cursor.execute("SELECT paciente_id, nome, cpf, telefone FROM paciente WHERE nome ILIKE %s ORDER BY paciente_id;", 
-                       (f"%{termo_busca}%",))
+        cursor.execute("""
+            SELECT p.paciente_id, p.nome, p.cpf, p.telefone, 
+                   c.nome_convenio, c.num_carteira, 
+                   part.limite_credito
+            FROM paciente p
+            LEFT JOIN conveniado c ON p.paciente_id = c.paciente_id
+            LEFT JOIN particular part ON p.paciente_id = part.paciente_id
+            WHERE p.nome ILIKE %s ORDER BY p.paciente_id;
+        """, (f"%{termo_busca}%",))
     else:
-        cursor.execute("SELECT paciente_id, nome, cpf, telefone FROM paciente ORDER BY paciente_id;")
+        cursor.execute("""
+            SELECT p.paciente_id, p.nome, p.cpf, p.telefone, 
+                   c.nome_convenio, c.num_carteira, 
+                   part.limite_credito
+            FROM paciente p
+            LEFT JOIN conveniado c ON p.paciente_id = c.paciente_id
+            LEFT JOIN particular part ON p.paciente_id = part.paciente_id
+            ORDER BY p.paciente_id;
+        """)
     lista_pacientes = cursor.fetchall()
-    
+
     # ====================================================
     # GATILHO DE CORREÇÃO: BUSCA DE DEPENDENTES
     # ====================================================
@@ -70,6 +85,7 @@ def inserir_paciente():
     nome_digitado = request.form['nome']
     cpf_puro = request.form['cpf']
     telefone_digitado = request.form['telefone']
+    tipo_paciente = request.form['tipo_paciente'] # Captura se é 'conveniado' ou 'particular'
 
     cpf_limpo = cpf_puro.replace('.', '').replace('-', '').replace(' ', '')
     if len(cpf_limpo) == 11:
@@ -80,33 +96,35 @@ def inserir_paciente():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
+        # 1. Gera o próximo ID do paciente
         cursor.execute("SELECT COALESCE(MAX(paciente_id), 0) + 1 FROM paciente;")
         novo_id = cursor.fetchone()[0]
+        
+        # 2. Insere na tabela base (Superclasse)
         cursor.execute("INSERT INTO paciente (paciente_id, nome, cpf, telefone) VALUES (%s, %s, %s, %s);", 
                        (novo_id, nome_digitado, cpf_formatado, telefone_digitado))
+        
+        # 3. Insere na tabela especializada correspondente (Subclasse)
+        if tipo_paciente == 'conveniado':
+            nome_convenio = request.form['nome_convenio']
+            num_carteira = request.form['num_carteira']
+            cursor.execute("INSERT INTO conveniado (paciente_id, nome_convenio, num_carteira) VALUES (%s, %s, %s);",
+                           (novo_id, nome_convenio, num_carteira))
+        elif tipo_paciente == 'particular':
+            limite_credito = request.form['limite_credito']
+            if not limite_credito: 
+                limite_credito = 0.00
+            cursor.execute("INSERT INTO particular (paciente_id, limite_credito) VALUES (%s, %s);",
+                           (novo_id, limite_credito))
+        
+        # Comita ambas as tabelas juntas na mesma transação
         conexao.commit()
     except errors.UniqueViolation:
         conexao.rollback()
         return redirect(url_for('tela_inicial', erro="Erro de Integridade: Este CPF já está cadastrado no sistema!"))
-    finally:
-        cursor.close()
-        conexao.close()
-    return redirect(url_for('tela_inicial'))
-
-@app.route('/deletar_paciente/<int:id_paciente>')
-def deletar_paciente(id_paciente):
-    conexao = conectar_banco()
-    cursor = conexao.cursor()
-    try:
-        cursor.execute("DELETE FROM paciente WHERE paciente_id = %s;", (id_paciente,))
-        conexao.commit()
-    except errors.ForeignKeyViolation:
-        # Captura o erro da Chave Estrangeira e avisa o usuário!
-        conexao.rollback()
-        return redirect(url_for('tela_inicial', erro="Erro de Integridade: Não é possível apagar este paciente pois ele possui vínculos (convênio, dependentes ou consultas agendadas)."))
     except Exception as e:
         conexao.rollback()
-        return redirect(url_for('tela_inicial', erro=f"Erro inesperado: {e}"))
+        return redirect(url_for('tela_inicial', erro=f"Erro ao salvar especialização do paciente: {e}"))
     finally:
         cursor.close()
         conexao.close()
@@ -207,6 +225,40 @@ def deletar_medico(id_medico):
         conexao.close()
     return redirect(url_for('tela_inicial'))
 
+# ====================================================
+# ROTA DE CONSULTA
+# ====================================================
+@app.route('/inserir_consulta', methods=['POST'])
+def inserir_consulta():
+    medico_id = request.form['medico_id']
+    paciente_id = request.form['paciente_id']
+    data_hora_raw = request.form['data_hora']
+    sala = request.form['sala']
+
+    # Formata a string de data vinda do HTML para o formato aceito pelo timestamp do PostgreSQL
+    data_hora = data_hora_raw.replace('T', ' ')
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        # Pega o próximo ID disponível
+        cursor.execute("SELECT COALESCE(MAX(consulta_id), 0) + 1 FROM consulta;")
+        novo_id = cursor.fetchone()[0]
+        
+        # Faz a inserção utilizando as FKs selecionadas e define o status inicial
+        cursor.execute("""
+            INSERT INTO consulta (consulta_id, medico_id, paciente_id, data_hora, sala, status) 
+            VALUES (%s, %s, %s, %s, %s, 'Agendada');
+        """, (novo_id, medico_id, paciente_id, data_hora, sala))
+        conexao.commit()
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao agendar consulta: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+        
+    return redirect(url_for('tela_inicial'))
 
 # ====================================================
 # ROTA PARA ATUALIZAR STATUS DA CONSULTA (NOVA)

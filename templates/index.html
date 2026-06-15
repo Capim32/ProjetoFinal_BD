@@ -52,9 +52,47 @@
                     <input type="text" name="nome" placeholder="Nome Completo" required>
                     <input type="text" name="cpf" placeholder="CPF" required>
                     <input type="text" name="telefone" placeholder="Telefone" required>
+                    
+                    <label>Tipo de Faturamento:</label>
+                    <select name="tipo_paciente" id="tipo_paciente" onchange="alternarCamposHeranca()" required>
+                        <option value="conveniado">Plano de Saúde (Conveniado)</option>
+                        <option value="particular">Particular</option>
+                    </select>
+
+                    <div id="campos_convenio">
+                        <input type="text" name="nome_convenio" id="input_convenio" placeholder="Nome do Convênio (Ex: Unimed)" required>
+                        <input type="text" name="num_carteira" id="input_carteira" placeholder="Número da Carteira" required>
+                    </div>
+
+                    <div id="campos_particular" style="display: none;">
+                        <input type="number" step="0.01" name="limite_credito" id="input_credito" placeholder="Limite de Crédito (R$)">
+                    </div>
+
                     <button type="submit">Cadastrar Paciente</button>
                 </form>
             </div>
+
+            <script>
+                function alternarCamposHeranca() {
+                    var tipo = document.getElementById('tipo_paciente').value;
+                    var divConvenio = document.getElementById('campos_convenio');
+                    var divParticular = document.getElementById('campos_particular');
+                    
+                    if (tipo === 'conveniado') {
+                        divConvenio.style.display = 'block';
+                        divParticular.style.display = 'none';
+                        document.getElementById('input_convenio').required = true;
+                        document.getElementById('input_carteira').required = true;
+                        document.getElementById('input_credito').required = false;
+                    } else {
+                        divConvenio.style.display = 'none';
+                        divParticular.style.display = 'block';
+                        document.getElementById('input_convenio').required = false;
+                        document.getElementById('input_carteira').required = false;
+                        document.getElementById('input_credito').required = true;
+                    }
+                }
+            </script>
             
             <div class="formulario" style="border-left: 5px solid #17a2b8;">
                 <h3 style="margin-top: 0;">➕ Novo Dependente</h3>
@@ -84,7 +122,13 @@
                                 <span>
                                     <strong>ID:</strong> {{ paciente[0] }} <br>
                                     <strong>Nome:</strong> {{ paciente[1] }} <br>
-                                    <strong>CPF:</strong> {{ paciente[2] }}
+                                    <strong>CPF:</strong> {{ paciente[2] }} <br>
+                                    
+                                    {% if paciente[4] %}
+                                        <span style="color: #007bff; font-size: 13px;">💳 <strong>Plano:</strong> {{ paciente[4] }} (Nº {{ paciente[5] }})</span>
+                                    {% elif paciente[6] is not none %}
+                                        <span style="color: #28a745; font-size: 13px;">💰 <strong>Particular</strong> | Limite: R$ {{ paciente[6] }}</span>
+                                    {% endif %}
                                 </span>
                                 <a href="/deletar_paciente/{{ paciente[0] }}"><button class="apagar">Apagar</button></a>
                             </div>
