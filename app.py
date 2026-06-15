@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 
-# Substitua pela sua URL real do Neon (mantenha o ?sslmode=require no final)
 URL_DO_BANCO = os.getenv("URL_DO_BANCO")
 
 def conectar_banco():
@@ -20,7 +19,7 @@ def tela_inicial():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     
-    # 1. Busca de Pacientes com LEFT JOIN para trazer a herança (Substitua esta parte na sua tela_inicial)
+    # 1. Busca de Pacientes com LEFT JOIN para trazer a herança
     termo_busca = request.args.get('busca')
     if termo_busca:
         cursor.execute("""
@@ -68,7 +67,6 @@ def tela_inicial():
     cursor.close()
     conexao.close()
     
-    # GARANTA QUE 'dependentes=lista_dependentes' ESTÁ NA LINHA ABAIXO:
     return render_template('index.html', 
                            pacientes=lista_pacientes, 
                            dependentes=lista_dependentes, 
@@ -85,7 +83,7 @@ def inserir_paciente():
     nome_digitado = request.form['nome']
     cpf_puro = request.form['cpf']
     telefone_digitado = request.form['telefone']
-    tipo_paciente = request.form['tipo_paciente'] # Captura se é 'conveniado' ou 'particular'
+    tipo_paciente = request.form['tipo_paciente']
 
     cpf_limpo = cpf_puro.replace('.', '').replace('-', '').replace(' ', '')
     if len(cpf_limpo) == 11:
@@ -241,7 +239,6 @@ def inserir_consulta():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # Pega o próximo ID disponível
         cursor.execute("SELECT COALESCE(MAX(consulta_id), 0) + 1 FROM consulta;")
         novo_id = cursor.fetchone()[0]
         
@@ -261,7 +258,7 @@ def inserir_consulta():
     return redirect(url_for('tela_inicial'))
 
 # ====================================================
-# ROTA PARA ATUALIZAR STATUS DA CONSULTA (NOVA)
+# ROTA PARA ATUALIZAR STATUS DA CONSULTA
 # ====================================================
 @app.route('/atualizar_status_consulta', methods=['POST'])
 def atualizar_status_consulta():
@@ -306,17 +303,17 @@ def inserir_pagamento():
         conexao.commit()
         
     except errors.RaiseException as e:
-        # 1. Regra do Gatilho: Valor menor ou igual a zero
+        # 1. Valor menor ou igual a zero
         conexao.rollback()
         return redirect(url_for('tela_inicial', erro=f"Gatilho do Banco Acionado: {e}"))
         
     except errors.UniqueViolation:
-        # 2. Regra UNIQUE: Consulta já tem pagamento associado
+        # 2. UNIQUE: Consulta já tem pagamento associado
         conexao.rollback()
         return redirect(url_for('tela_inicial', erro=f"Erro de Integridade: A Consulta {consulta_id} já foi paga! O sistema bloqueou o pagamento duplicado."))
         
     except errors.ForeignKeyViolation:
-        # 3. Regra de Chave Estrangeira: A consulta não existe
+        # 3. Chave Estrangeira: A consulta não existe
         conexao.rollback()
         return redirect(url_for('tela_inicial', erro=f"Erro de Integridade: A Consulta {consulta_id} não existe no sistema. Verifique o ID."))
         
@@ -332,7 +329,7 @@ def inserir_pagamento():
     return redirect(url_for('tela_inicial'))
 
 # ====================================================
-# ROTA DE RELATÓRIOS (Corrigida com Ordem Cronológica)
+# ROTA DE RELATÓRIOS (ordenado por data e hora)
 # ====================================================
 @app.route('/relatorios')
 def relatorios():
