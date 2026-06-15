@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema Hospitalar</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .grid-container { display: flex; gap: 30px; align-items: flex-start; }
+        .coluna { flex: 1; min-width: 320px; }
+        .formulario { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 20px;}
+        input, select { display: block; margin-bottom: 10px; width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        button { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold;}
+        button.apagar { background-color: #dc3545; padding: 5px 10px; width: auto;}
+        li { background: white; margin-bottom: 10px; padding: 10px; border-radius: 4px; border-left: 5px solid #007bff; display: flex; align-items: center; justify-content: space-between;}
+        .medico-linha { border-left: 5px solid #17a2b8; }
+        .alerta { background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb; font-weight: bold;}
+        .btn-relatorio { background-color: #6f42c1; padding: 15px; font-size: 18px; display: block; text-align: center; text-decoration: none; border-radius: 5px; margin-bottom: 20px; color: white; font-weight: bold;}
+        label { font-size: 12px; font-weight: bold; color: #666; display: block; margin-bottom: 2px;}
+    </style>
+</head>
+<body>
+
+    <h1>Painel de Gestão Hospitalar</h1>
+    
+    <a href="/relatorios" class="btn-relatorio">📊 Acessar Relatórios Avançados (View, Joins e Agregações)</a>
+
+    {% if erro %}
+        <div class="alerta">
+            ⚠️ {{ erro }}
+        </div>
+    {% endif %}
+
+    <div class="grid-container">
+        
+        <div class="coluna">
+            <h2>Gestão de Pacientes</h2>
+            
+            <div class="formulario" style="background-color: #e9ecef; border: 1px solid #ced4da;">
+                <h3 style="margin-top: 0;">🔍 Buscar Paciente</h3>
+                <form action="/" method="GET" style="display: flex; gap: 10px;">
+                    <input type="text" name="busca" placeholder="Digite parte do nome..." value="{{ busca_atual if busca_atual else '' }}" required style="margin-bottom: 0;">
+                    <button style="background-color: #007bff; width: auto;" type="submit">Pesquisar</button>
+                </form>
+                {% if busca_atual %}
+                    <a href="/" style="display: block; text-align: center; margin-top: 10px; color: #dc3545; text-decoration: none; font-size: 14px;">✖ Limpar Filtro</a>
+                {% endif %}
+            </div>
+
+            <div class="formulario">
+                <h3>Novo Paciente</h3>
+                <form action="/inserir_paciente" method="POST">
+                    <input type="text" name="nome" placeholder="Nome Completo" required>
+                    <input type="text" name="cpf" placeholder="CPF" required>
+                    <input type="text" name="telefone" placeholder="Telefone" required>
+                    <button type="submit">Cadastrar Paciente</button>
+                </form>
+            </div>
+
+            <ul style="list-style-type: none; padding: 0;">
+                {% for paciente in pacientes %}
+                    <li>
+                        <span>
+                            <strong>ID:</strong> {{ paciente[0] }} <br>
+                            <strong>Nome:</strong> {{ paciente[1] }} <br>
+                            <strong>CPF:</strong> {{ paciente[2] }}
+                        </span>
+                        <a href="/deletar_paciente/{{ paciente[0] }}"><button class="apagar">Apagar</button></a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="coluna">
+            <h2>Gestão de Médicos</h2>
+            <div class="formulario">
+                <h3>Novo Médico</h3>
+                <form action="/inserir_medico" method="POST">
+                    <input type="text" name="nome" placeholder="Nome do Médico" required>
+                    <input type="text" name="crm" placeholder="Número do CRM (Apenas 4 dígitos)" pattern="\d{4}" maxlength="4" title="Digite exatamente 4 números" required>
+                    
+                    <select name="espec_id" required>
+                        <option value="0">Médico Geral (Sem Especialidade)</option>
+                        {% for esp in especialidades %}
+                        <option value="{{ esp[0] }}">{{ esp[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <button style="background-color: #17a2b8;" type="submit">Cadastrar Médico</button>
+                </form>
+            </div>
+
+            <ul style="list-style-type: none; padding: 0;">
+                {% for medico in medicos %}
+                    <li class="medico-linha">
+                        <span>
+                            <strong>ID:</strong> {{ medico[0] }} <br>
+                            <strong>Nome:</strong> {{ medico[1] }} <br>
+                            <strong>CRM:</strong> {{ medico[2] }} | <br>
+                            <strong>Especialidade:</strong> {{ medico[3] if medico[3] else 'Médico Geral' }}
+                        </span>
+                        <a href="/deletar_medico/{{ medico[0] }}"><button class="apagar">Apagar</button></a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="coluna">
+            <h2>Consultas e Finanças</h2>
+            
+            <div class="formulario" style="border-left: 5px solid #28a745;">
+                <h3>📅 Agendar Nova Consulta</h3>
+                <form action="/inserir_consulta" method="POST">
+                    
+                    <label>Paciente:</label>
+                    <select name="paciente_id" required>
+                        <option value="">-- Selecione o Paciente --</option>
+                        {% for p in pacientes %}
+                        <option value="{{ p[0] }}">(ID: {{ p[0] }}) {{ p[1] }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label>Médico:</label>
+                    <select name="medico_id" required>
+                        <option value="">-- Selecione o Médico --</option>
+                        {% for m in medicos %}
+                        <option value="{{ m[0] }}">(ID: {{ m[0] }}) {{ m[1] }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label>Data e Hora:</label>
+                    <input type="datetime-local" name="data_hora" required>
+
+                    <label>Sala de Atendimento:</label>
+                    <input type="text" name="sala" placeholder="Ex: Sala 102" required>
+
+                    <button style="background-color: #28a745;" type="submit">Confirmar Agendamento</button>
+                </form>
+            </div>
+
+            <div class="formulario" style="border-left: 5px solid #ffc107;">
+                <h3>Lançar Pagamento (Teste do Gatilho)</h3>
+                <p style="font-size: 13px; color: #555;">Envie um valor negativo para testar a restrição do gatilho.</p>
+                <form action="/inserir_pagamento" method="POST">
+                    <input type="number" name="consulta_id" placeholder="ID da Consulta (Ex: 1)" required>
+                    <input type="number" step="0.01" name="valor" placeholder="Valor (R$)" required>
+                    <button style="background-color: #ffc107; color: black;" type="submit">Registrar Pagamento</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

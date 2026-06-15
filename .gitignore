@@ -1,0 +1,11 @@
+# Ignorar variáveis de ambiente
+.env
+
+# Ignora os scripts
+/SQL_Scripts/
+
+# Ignorar pastas virtuais do Python (boa prática)
+__pycache__/
+venv/
+.venv/
+env/
