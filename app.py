@@ -13,14 +13,14 @@ def conectar_banco():
     return psycopg2.connect(URL_DO_BANCO)
 
 # ----------------------------------------------------
-# 1. ROTA DE LISTAGEM (Página Inicial com Busca)
+# 1. ROTA DE LISTAGEM (Página Inicial Completa)
 # ----------------------------------------------------
 @app.route('/')
 def tela_inicial():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     
-    # Busca por substring (Filtro de Pacientes)
+    # 1. Busca de Pacientes (com ou sem filtro de substring)
     termo_busca = request.args.get('busca')
     if termo_busca:
         cursor.execute("SELECT paciente_id, nome, cpf, telefone FROM paciente WHERE nome ILIKE %s ORDER BY paciente_id;", 
@@ -29,7 +29,13 @@ def tela_inicial():
         cursor.execute("SELECT paciente_id, nome, cpf, telefone FROM paciente ORDER BY paciente_id;")
     lista_pacientes = cursor.fetchall()
     
-    # Busca os médicos trazendo o nome da especialidade via LEFT JOIN
+    # ====================================================
+    # GATILHO DE CORREÇÃO: BUSCA DE DEPENDENTES
+    # ====================================================
+    cursor.execute("SELECT nome_dependente, paciente_id, data_nascimento, telefone FROM dependente;")
+    lista_dependentes = cursor.fetchall()
+    
+    # 2. Busca de Médicos
     cursor.execute("""
         SELECT m.medico_id, m.nome, m.crm, e.nome 
         FROM medico m
@@ -38,7 +44,7 @@ def tela_inicial():
     """)
     lista_medicos = cursor.fetchall()
     
-    # Busca as especialidades para alimentar o Dropdown do formulário de médicos
+    # 3. Busca de Especialidades
     cursor.execute("SELECT espec_id, nome FROM especialidade ORDER BY nome;")
     lista_especialidades = cursor.fetchall()
     
@@ -47,7 +53,14 @@ def tela_inicial():
     cursor.close()
     conexao.close()
     
-    return render_template('index.html', pacientes=lista_pacientes, medicos=lista_medicos, especialidades=lista_especialidades, erro=erro, busca_atual=termo_busca)
+    # GARANTA QUE 'dependentes=lista_dependentes' ESTÁ NA LINHA ABAIXO:
+    return render_template('index.html', 
+                           pacientes=lista_pacientes, 
+                           dependentes=lista_dependentes, 
+                           medicos=lista_medicos, 
+                           especialidades=lista_especialidades, 
+                           erro=erro, 
+                           busca_atual=termo_busca)
 
 # ====================================================
 # ROTAS DE PACIENTE
@@ -94,6 +107,53 @@ def deletar_paciente(id_paciente):
     except Exception as e:
         conexao.rollback()
         return redirect(url_for('tela_inicial', erro=f"Erro inesperado: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+    return redirect(url_for('tela_inicial'))
+
+# ====================================================
+# ROTAS DE DEPENDENTE
+# ====================================================
+@app.route('/inserir_dependente', methods=['POST'])
+def inserir_dependente():
+    nome_dependente = request.form['nome_dependente']
+    paciente_id = request.form['paciente_id']
+    data_nascimento = request.form['data_nascimento']
+    telefone = request.form['telefone']
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO dependente (nome_dependente, paciente_id, data_nascimento, telefone) 
+            VALUES (%s, %s, %s, %s);
+        """, (nome_dependente, paciente_id, data_nascimento, telefone))
+        conexao.commit()
+    except errors.UniqueViolation:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro="Erro de Integridade: Este paciente já possui um dependente com esse nome!"))
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao inserir dependente: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+        
+    return redirect(url_for('tela_inicial'))
+
+@app.route('/deletar_dependente/<int:id_paciente>/<string:nome_dependente>')
+def deletar_dependente(id_paciente, nome_dependente):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        # Usa a Chave Primária Composta exata para deletar
+        cursor.execute("DELETE FROM dependente WHERE paciente_id = %s AND nome_dependente = %s;", 
+                       (id_paciente, nome_dependente))
+        conexao.commit()
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao apagar dependente: {e}"))
     finally:
         cursor.close()
         conexao.close()

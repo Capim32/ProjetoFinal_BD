@@ -55,16 +55,51 @@
                     <button type="submit">Cadastrar Paciente</button>
                 </form>
             </div>
+            
+            <div class="formulario" style="border-left: 5px solid #17a2b8;">
+                <h3 style="margin-top: 0;">➕ Novo Dependente</h3>
+                <form action="/inserir_dependente" method="POST">
+                    <input type="text" name="nome_dependente" placeholder="Nome do Dependente" maxlength="100" required>
+                    
+                    <select name="paciente_id" required>
+                        <option value="">-- Selecione o Paciente Titular --</option>
+                        {% for p in pacientes %}
+                        <option value="{{ p[0] }}">(ID: {{ p[0] }}) {{ p[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <label>Data de Nascimento:</label>
+                    <input type="date" name="data_nascimento" required>
+                    <input type="text" name="telefone" placeholder="Telefone (Max 20 dígitos)" maxlength="20">
+                    
+                    <button style="background-color: #17a2b8;" type="submit">Vincular Dependente</button>
+                </form>
+            </div>
 
             <ul style="list-style-type: none; padding: 0;">
                 {% for paciente in pacientes %}
                     <li>
-                        <span>
-                            <strong>ID:</strong> {{ paciente[0] }} <br>
-                            <strong>Nome:</strong> {{ paciente[1] }} <br>
-                            <strong>CPF:</strong> {{ paciente[2] }}
-                        </span>
-                        <a href="/deletar_paciente/{{ paciente[0] }}"><button class="apagar">Apagar</button></a>
+                        <div style="width: 100%;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span>
+                                    <strong>ID:</strong> {{ paciente[0] }} <br>
+                                    <strong>Nome:</strong> {{ paciente[1] }} <br>
+                                    <strong>CPF:</strong> {{ paciente[2] }}
+                                </span>
+                                <a href="/deletar_paciente/{{ paciente[0] }}"><button class="apagar">Apagar</button></a>
+                            </div>
+                            
+                            <ul style="list-style-type: none; padding-left: 15px; margin: 0; border-top: 1px dashed #ccc; padding-top: 5px;">
+                                {% for dep in dependentes %}
+                                    {% if dep[1] == paciente[0] %}
+                                        <li style="background: #f8f9fa; border-left: 3px solid #17a2b8; padding: 5px; margin-bottom: 5px; font-size: 13px;">
+                                            🧒 <strong>{{ dep[0] }}</strong> | Tel: {{ dep[3] if dep[3] else 'Não informado' }}
+                                            <a href="/deletar_dependente/{{ dep[1] }}/{{ dep[0] }}" style="color: #dc3545; text-decoration: none; font-weight: bold; float: right;">X</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </li>
                 {% endfor %}
             </ul>
