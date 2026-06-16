@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,7 +40,8 @@
             gap: 20px;
             max-width: 1500px;
             margin: 0 auto;
-            align-items: start; /* Para que as colunas cresçam de forma independente */
+            align-items: start;
+            /* Para que as colunas cresçam de forma independente */
         }
 
         /* Estilo de cada Subtela (Coluna) */
@@ -47,7 +49,7 @@
             background-color: var(--card-bg);
             padding: 25px;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             border-top: 5px solid var(--secondary);
         }
 
@@ -78,7 +80,9 @@
             color: var(--primary);
         }
 
-        input, select, button {
+        input,
+        select,
+        button {
             width: 100%;
             padding: 12px;
             margin-bottom: 12px;
@@ -99,21 +103,29 @@
             font-size: 14px;
         }
 
-        button:hover { background-color: #2980b9; }
-        
-        .btn-apagar { 
-            background-color: var(--accent); 
-            width: auto; 
-            padding: 5px 10px; 
-            font-size: 12px; 
+        button:hover {
+            background-color: #2980b9;
         }
-        .btn-apagar:hover { background-color: #c0392b; }
+
+        .btn-apagar {
+            background-color: var(--accent);
+            width: auto;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .btn-apagar:hover {
+            background-color: #c0392b;
+        }
 
         .btn-relatorio {
             background-color: #9b59b6;
             margin-top: 10px;
         }
-        .btn-relatorio:hover { background-color: #8e44ad; }
+
+        .btn-relatorio:hover {
+            background-color: #8e44ad;
+        }
 
         /* Mensagens de Erro */
         .alerta-erro {
@@ -128,14 +140,19 @@
         }
 
         /* Listagens (Cartões internos) */
-        ul { list-style: none; padding: 0; margin: 0; }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
         .card-item {
             background-color: #ffffff;
             border: 1px solid #ecf0f1;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
         }
 
         .card-item-header {
@@ -145,15 +162,25 @@
             margin-bottom: 10px;
         }
 
-        .tag-convenio { color: var(--secondary); font-size: 13px; font-weight: bold; }
-        .tag-particular { color: var(--success); font-size: 13px; font-weight: bold; }
-        
+        .tag-convenio {
+            color: var(--secondary);
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .tag-particular {
+            color: var(--success);
+            font-size: 13px;
+            font-weight: bold;
+        }
+
         .lista-dependentes {
             border-top: 1px dashed #bdc3c7;
             padding-top: 10px;
             margin-top: 10px;
             padding-left: 10px;
         }
+
         .dependente-item {
             background-color: #f1f2f6;
             padding: 8px;
@@ -165,6 +192,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <h1 class="titulo-principal">🏥 Painel de Gestão Hospitalar</h1>
@@ -183,13 +211,14 @@
             <div class="formulario">
                 <h3>🔍 Buscar Paciente</h3>
                 <form action="/" method="GET" style="display: flex; gap: 10px;">
-                    <input type="text" name="busca" placeholder="Nome do paciente..." value="{{ busca_atual if busca_atual else '' }}" required style="margin-bottom: 0;">
+                    <input type="text" name="busca" placeholder="Nome do paciente..."
+                        value="{{ busca_atual if busca_atual else '' }}" required style="margin-bottom: 0;">
                     <button type="submit" style="width: auto; margin-bottom: 0;">Buscar</button>
                 </form>
                 {% if busca_atual %}
-                    <div style="text-align: center; margin-top: 10px;">
-                        <a href="/" style="color: #e74c3c; text-decoration: none; font-size: 14px;">✖ Limpar Busca</a>
-                    </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <a href="/" style="color: #e74c3c; text-decoration: none; font-size: 14px;">✖ Limpar Busca</a>
+                </div>
                 {% endif %}
             </div>
 
@@ -199,19 +228,22 @@
                     <input type="text" name="nome" placeholder="Nome Completo" required>
                     <input type="text" name="cpf" placeholder="CPF (Apenas números)" required>
                     <input type="text" name="telefone" placeholder="Telefone" required>
-                    
+
                     <select name="tipo_paciente" id="tipo_paciente" onchange="alternarCamposHeranca()" required>
                         <option value="conveniado">Plano de Saúde (Conveniado)</option>
                         <option value="particular">Paciente Particular</option>
                     </select>
 
                     <div id="campos_convenio">
-                        <input type="text" name="nome_convenio" id="input_convenio" placeholder="Nome do Convênio (Ex: Unimed)" required>
-                        <input type="text" name="num_carteira" id="input_carteira" placeholder="Número da Carteira" required>
+                        <input type="text" name="nome_convenio" id="input_convenio"
+                            placeholder="Nome do Convênio (Ex: Unimed)" required>
+                        <input type="text" name="num_carteira" id="input_carteira" placeholder="Número da Carteira"
+                            required>
                     </div>
 
                     <div id="campos_particular" style="display: none;">
-                        <input type="number" step="0.01" name="limite_credito" id="input_credito" placeholder="Limite de Crédito (R$)">
+                        <input type="number" step="0.01" name="limite_credito" id="input_credito"
+                            placeholder="Limite de Crédito (R$)">
                     </div>
 
                     <button type="submit">Cadastrar Paciente</button>
@@ -222,18 +254,18 @@
                 <h3>➕ Novo Dependente</h3>
                 <form action="/inserir_dependente" method="POST">
                     <input type="text" name="nome_dependente" placeholder="Nome do Dependente" required>
-                    
+
                     <select name="paciente_id" required>
                         <option value="">-- Selecione o Titular --</option>
                         {% for p in pacientes %}
                         <option value="{{ p[0] }}">{{ p[1] }} (ID: {{ p[0] }})</option>
                         {% endfor %}
                     </select>
-                    
+
                     <label style="font-size: 13px; color: #7f8c8d;">Data de Nascimento:</label>
                     <input type="date" name="data_nascimento" required>
                     <input type="text" name="telefone" placeholder="Telefone do Dependente">
-                    
+
                     <button style="background-color: #1abc9c;" type="submit">Vincular Dependente</button>
                 </form>
             </div>
@@ -241,32 +273,33 @@
             <h3>📋 Pacientes Cadastrados</h3>
             <ul>
                 {% for paciente in pacientes %}
-                    <li class="card-item">
-                        <div class="card-item-header">
-                            <div>
-                                <strong>ID {{ paciente[0] }} - {{ paciente[1] }}</strong><br>
-                                <span style="font-size: 13px; color: #7f8c8d;">CPF: {{ paciente[2] }}</span><br>
-                                
-                                {% if paciente[4] %}
-                                    <span class="tag-convenio">💳 {{ paciente[4] }} ({{ paciente[5] }})</span>
-                                {% elif paciente[6] is not none %}
-                                    <span class="tag-particular">💰 Particular (Limite: R$ {{ paciente[6] }})</span>
-                                {% endif %}
-                            </div>
-                            <a href="/deletar_paciente/{{ paciente[0] }}"><button class="btn-apagar">Apagar</button></a>
-                        </div>
+                <li class="card-item">
+                    <div class="card-item-header">
+                        <div>
+                            <strong>ID {{ paciente[0] }} - {{ paciente[1] }}</strong><br>
+                            <span style="font-size: 13px; color: #7f8c8d;">CPF: {{ paciente[2] }}</span><br>
 
-                        <ul class="lista-dependentes">
-                            {% for dep in dependentes %}
-                                {% if dep[1] == paciente[0] %}
-                                    <li class="dependente-item">
-                                        <span>🧒 {{ dep[0] }}</span>
-                                        <a href="/deletar_dependente/{{ dep[1] }}/{{ dep[0] }}" style="color: #e74c3c; text-decoration: none; font-weight: bold;">X</a>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </li>
+                            {% if paciente[4] %}
+                            <span class="tag-convenio">💳 {{ paciente[4] }} ({{ paciente[5] }})</span>
+                            {% elif paciente[6] is not none %}
+                            <span class="tag-particular">💰 Particular (Limite: R$ {{ paciente[6] }})</span>
+                            {% endif %}
+                        </div>
+                        <a href="/deletar_paciente/{{ paciente[0] }}"><button class="btn-apagar">Apagar</button></a>
+                    </div>
+
+                    <ul class="lista-dependentes">
+                        {% for dep in dependentes %}
+                        {% if dep[1] == paciente[0] %}
+                        <li class="dependente-item">
+                            <span>🧒 {{ dep[0] }}</span>
+                            <a href="/deletar_dependente/{{ dep[1] }}/{{ dep[0] }}"
+                                style="color: #e74c3c; text-decoration: none; font-weight: bold;">X</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -279,11 +312,11 @@
                 <form action="/inserir_medico" method="POST">
                     <input type="text" name="nome" placeholder="Nome do Médico" required>
                     <input type="text" name="crm" placeholder="CRM" required>
-                    
+
                     <select name="espec_id" required>
                         <option value="">-- Especialidade --</option>
                         {% for esp in especialidades %}
-                            <option value="{{ esp[0] }}">{{ esp[1] }}</option>
+                        <option value="{{ esp[0] }}">{{ esp[1] }}</option>
                         {% endfor %}
                     </select>
                     <button style="background-color: #9b59b6;" type="submit">Cadastrar Médico</button>
@@ -293,15 +326,15 @@
             <h3>📋 Corpo Clínico</h3>
             <ul>
                 {% for medico in medicos %}
-                    <li class="card-item">
-                        <div class="card-item-header">
-                            <div>
-                                <strong>Dr(a). {{ medico[1] }}</strong><br>
-                                <span style="font-size: 13px; color: #7f8c8d;">CRM: {{ medico[2] }} | {{ medico[3] }}</span>
-                            </div>
-                            <a href="/deletar_medico/{{ medico[0] }}"><button class="btn-apagar">Apagar</button></a>
+                <li class="card-item">
+                    <div class="card-item-header">
+                        <div>
+                            <strong>Dr(a). {{ medico[1] }}</strong><br>
+                            <span style="font-size: 13px; color: #7f8c8d;">CRM: {{ medico[2] }} | {{ medico[3] }}</span>
                         </div>
-                    </li>
+                        <a href="/deletar_medico/{{ medico[0] }}"><button class="btn-apagar">Apagar</button></a>
+                    </div>
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -315,22 +348,22 @@
                     <select name="paciente_id" required>
                         <option value="">-- Selecione o Paciente --</option>
                         {% for p in pacientes %}
-                            <option value="{{ p[0] }}">{{ p[1] }}</option>
+                        <option value="{{ p[0] }}">{{ p[1] }}</option>
                         {% endfor %}
                     </select>
 
                     <select name="medico_id" required>
                         <option value="">-- Selecione o Médico --</option>
                         {% for m in medicos %}
-                            <option value="{{ m[0] }}">Dr(a). {{ m[1] }} ({{ m[3] }})</option>
+                        <option value="{{ m[0] }}">Dr(a). {{ m[1] }} ({{ m[3] }})</option>
                         {% endfor %}
                     </select>
 
                     <label style="font-size: 13px; color: #7f8c8d;">Data e Hora:</label>
                     <input type="datetime-local" name="data_hora" required>
-                    
+
                     <input type="text" name="sala" placeholder="Sala (Ex: 101-A)" required>
-                    
+
                     <button style="background-color: #f39c12;" type="submit">Confirmar Agendamento</button>
                 </form>
             </div>
@@ -340,7 +373,7 @@
                 <form action="/inserir_pagamento" method="POST">
                     <input type="number" name="consulta_id" placeholder="ID da Consulta" required>
                     <input type="number" step="0.01" name="valor" placeholder="Valor (R$)" required>
-                    
+
                     <select name="metodo" required>
                         <option value="">-- Método de Pagamento --</option>
                         <option value="Cartão de Crédito">Cartão de Crédito</option>
@@ -348,7 +381,7 @@
                         <option value="PIX">PIX</option>
                         <option value="Plano de Saúde">Plano de Saúde</option>
                     </select>
-                    
+
                     <button style="background-color: #2ecc71;" type="submit">Processar Pagamento</button>
                 </form>
                 <p style="font-size: 11px; color: #7f8c8d; text-align: center; margin-top: 10px;">
@@ -356,9 +389,25 @@
                 </p>
             </div>
 
+            <div class="formulario" style="border-left: 4px solid #e74c3c;">
+                <h3>💊 Emitir Prescrição (Receita)</h3>
+                <form action="/inserir_prescricao" method="POST">
+                    <input type="number" name="consulta_id" placeholder="ID da Consulta" required>
+                    <input type="text" name="medicamento" placeholder="Nome do Medicamento (Ex: Amoxicilina)" required>
+                    <input type="text" name="dosagem" placeholder="Dosagem (Ex: 500mg de 8/8h)">
+
+                    <button style="background-color: #e74c3c;" type="submit">Gravar Prescrição</button>
+                </form>
+                <p style="font-size: 11px; color: #7f8c8d; text-align: center; margin-top: 10px;">
+                    *Relação 1:1 - O banco de dados rejeitará automaticamente uma segunda receita para o mesmo
+                    atendimento.
+                </p>
+            </div>
+
             <div style="text-align: center; margin-top: 30px;">
                 <a href="/relatorios" style="text-decoration: none;">
-                    <button class="btn-relatorio" style="padding: 15px; font-size: 16px;">📊 Acessar Relatórios Detalhados</button>
+                    <button class="btn-relatorio" style="padding: 15px; font-size: 16px;">📊 Acessar Relatórios
+                        Detalhados</button>
                 </a>
             </div>
 
@@ -371,7 +420,7 @@
             var tipo = document.getElementById('tipo_paciente').value;
             var divConvenio = document.getElementById('campos_convenio');
             var divParticular = document.getElementById('campos_particular');
-            
+
             if (tipo === 'conveniado') {
                 divConvenio.style.display = 'block';
                 divParticular.style.display = 'none';
@@ -386,9 +435,10 @@
                 document.getElementById('input_credito').required = true;
             }
         }
-        
+
         // Garante que o estado correto é carregado quando a página abre
         window.onload = alternarCamposHeranca;
     </script>
 </body>
+
 </html>

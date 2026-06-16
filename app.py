@@ -285,6 +285,42 @@ def atualizar_status_consulta():
     return redirect(url_for('relatorios'))
 
 # ====================================================
+# ROTA DE PRESCRIÇÃO MÉDICA (Relação 1:1)
+# ====================================================
+@app.route('/inserir_prescricao', methods=['POST'])
+def inserir_prescricao():
+    consulta_id = request.form['consulta_id']
+    medicamento = request.form['medicamento']
+    dosagem = request.form['dosagem']
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        # Pega o próximo ID disponível (simulando um auto-incremento)
+        cursor.execute("SELECT COALESCE(MAX(presc_id), 0) + 1 FROM prescricao;")
+        novo_id = cursor.fetchone()[0]
+
+        # Tenta inserir a prescrição atrelada à consulta
+        cursor.execute("""
+            INSERT INTO prescricao (presc_id, consulta_id, medicamento, dosagem) 
+            VALUES (%s, %s, %s, %s);
+        """, (novo_id, consulta_id, medicamento, dosagem))
+        conexao.commit()
+        
+    except errors.UniqueViolation:
+        # O banco bloqueia se já existir uma prescrição para este ID de consulta
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro="Segurança Clínica: Esta consulta já possui uma prescrição médica ativa! Não é possível emitir duplicidade."))
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao emitir prescrição: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+        
+    return redirect(url_for('tela_inicial'))
+
+# ====================================================
 # TESTE DO GATILHO E PAGAMENTOS
 # ====================================================
 @app.route('/inserir_pagamento', methods=['POST'])
