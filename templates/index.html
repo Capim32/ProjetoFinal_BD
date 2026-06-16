@@ -305,40 +305,87 @@
         </div>
 
         <div class="coluna" style="border-top-color: #9b59b6;">
-            <h2>🩺 Gestão de Médicos</h2>
+            <h2>🩺 Médicos e Hospitais</h2>
 
             <div class="formulario">
                 <h3>➕ Novo Médico</h3>
                 <form action="/inserir_medico" method="POST">
                     <input type="text" name="nome" placeholder="Nome do Médico" required>
                     <input type="text" name="crm" placeholder="CRM" required>
-
+                    
                     <select name="espec_id" required>
                         <option value="">-- Especialidade --</option>
                         {% for esp in especialidades %}
-                        <option value="{{ esp[0] }}">{{ esp[1] }}</option>
+                            <option value="{{ esp[0] }}">{{ esp[1] }}</option>
                         {% endfor %}
                     </select>
                     <button style="background-color: #9b59b6;" type="submit">Cadastrar Médico</button>
                 </form>
             </div>
 
+            <div class="formulario" style="border-left: 4px solid #34495e;">
+                <h3>🏥 Novo Hospital</h3>
+                <form action="/inserir_hospital" method="POST">
+                    <input type="text" name="nome" placeholder="Nome do Hospital" required>
+                    <input type="text" name="cnpj" placeholder="CNPJ (14 dígitos)" maxlength="18" required>
+                    <input type="text" name="endereco" placeholder="Endereço">
+                    <input type="text" name="telefone" placeholder="Telefone">
+                    <button style="background-color: #34495e;" type="submit">Cadastrar Hospital</button>
+                </form>
+            </div>
+
+            <div class="formulario" style="background-color: #e8eaed; border-left: 4px solid #f39c12;">
+                <h3>🔗 Vincular Plantão (N:N)</h3>
+                <form action="/vincular_hospital" method="POST">
+                    <select name="medico_id" required>
+                        <option value="">-- Selecione o Médico --</option>
+                        {% for m in medicos %}
+                            <option value="{{ m[0] }}">Dr(a). {{ m[1] }} (CRM: {{ m[2] }})</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="hospital_id" required>
+                        <option value="">-- Selecione o Hospital --</option>
+                        {% for h in hospitais %}
+                            <option value="{{ h[0] }}">{{ h[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    <button style="background-color: #f39c12; color: white;" type="submit">Estabelecer Vínculo</button>
+                </form>
+                <p style="font-size: 11px; color: #7f8c8d; text-align: center; margin-top: 10px;">
+                    *Uma PK composta impedirá que o mesmo médico seja vinculado duas vezes ao mesmo hospital.
+                </p>
+
+                <h3 style="margin-top: 25px;">📋 Hospitais Registados</h3>
+                <ul>
+                    {% for h in hospitais %}
+                        <li class="card-item" style="border-left: 3px solid #34495e;">
+                            <div class="card-item-header">
+                                <div>
+                                    <strong>{{ h[1] }}</strong><br>
+                                    <span style="font-size: 13px; color: #7f8c8d;">CNPJ: {{ h[2] }} (ID: {{ h[0] }})</span>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
             <h3>📋 Corpo Clínico</h3>
             <ul>
                 {% for medico in medicos %}
-                <li class="card-item">
-                    <div class="card-item-header">
-                        <div>
-                            <strong>Dr(a). {{ medico[1] }}</strong><br>
-                            <span style="font-size: 13px; color: #7f8c8d;">CRM: {{ medico[2] }} | {{ medico[3] }}</span>
+                    <li class="card-item">
+                        <div class="card-item-header">
+                            <div>
+                                <strong>Dr(a). {{ medico[1] }}</strong><br>
+                                <span style="font-size: 13px; color: #7f8c8d;">CRM: {{ medico[2] }} | {{ medico[3] }}</span>
+                            </div>
+                            <a href="/deletar_medico/{{ medico[0] }}"><button class="btn-apagar">Apagar</button></a>
                         </div>
-                        <a href="/deletar_medico/{{ medico[0] }}"><button class="btn-apagar">Apagar</button></a>
-                    </div>
-                </li>
+                    </li>
                 {% endfor %}
             </ul>
         </div>
-
         <div class="coluna" style="border-top-color: #f39c12;">
             <h2>📅 Consultas e Finanças</h2>
 

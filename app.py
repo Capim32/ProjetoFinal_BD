@@ -11,15 +11,14 @@ URL_DO_BANCO = os.getenv("URL_DO_BANCO")
 def conectar_banco():
     return psycopg2.connect(URL_DO_BANCO)
 
-# ----------------------------------------------------
+# ====================================================
 # 1. ROTA DE LISTAGEM (Página Inicial Completa)
-# ----------------------------------------------------
+# ====================================================
 @app.route('/')
 def tela_inicial():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     
-    # 1. Busca de Pacientes com LEFT JOIN para trazer a herança
     termo_busca = request.args.get('busca')
     if termo_busca:
         cursor.execute("""
@@ -43,13 +42,9 @@ def tela_inicial():
         """)
     lista_pacientes = cursor.fetchall()
 
-    # ====================================================
-    # GATILHO DE CORREÇÃO: BUSCA DE DEPENDENTES
-    # ====================================================
     cursor.execute("SELECT nome_dependente, paciente_id, data_nascimento, telefone FROM dependente;")
     lista_dependentes = cursor.fetchall()
     
-    # 2. Busca de Médicos
     cursor.execute("""
         SELECT m.medico_id, m.nome, m.crm, e.nome 
         FROM medico m
@@ -58,9 +53,11 @@ def tela_inicial():
     """)
     lista_medicos = cursor.fetchall()
     
-    # 3. Busca de Especialidades
     cursor.execute("SELECT espec_id, nome FROM especialidade ORDER BY nome;")
     lista_especialidades = cursor.fetchall()
+    
+    cursor.execute("SELECT hospital_id, nome, cnpj FROM hospital ORDER BY nome;")
+    lista_hospitais = cursor.fetchall()
     
     erro = request.args.get('erro') 
     
@@ -71,7 +68,8 @@ def tela_inicial():
                            pacientes=lista_pacientes, 
                            dependentes=lista_dependentes, 
                            medicos=lista_medicos, 
-                           especialidades=lista_especialidades, 
+                           especialidades=lista_especialidades,
+                           hospitais=lista_hospitais,
                            erro=erro, 
                            busca_atual=termo_busca)
 
@@ -94,15 +92,14 @@ def inserir_paciente():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # 1. Gera o próximo ID do paciente
         cursor.execute("SELECT COALESCE(MAX(paciente_id), 0) + 1 FROM paciente;")
         novo_id = cursor.fetchone()[0]
         
-        # 2. Insere na tabela base (Superclasse)
+        # Insere na tabela base (Superclasse)
         cursor.execute("INSERT INTO paciente (paciente_id, nome, cpf, telefone) VALUES (%s, %s, %s, %s);", 
                        (novo_id, nome_digitado, cpf_formatado, telefone_digitado))
         
-        # 3. Insere na tabela especializada correspondente (Subclasse)
+        # Insere na tabela especializada correspondente (Subclasse)
         if tipo_paciente == 'conveniado':
             nome_convenio = request.form['nome_convenio']
             num_carteira = request.form['num_carteira']
@@ -163,7 +160,6 @@ def deletar_dependente(id_paciente, nome_dependente):
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # Usa a Chave Primária Composta exata para deletar
         cursor.execute("DELETE FROM dependente WHERE paciente_id = %s AND nome_dependente = %s;", 
                        (id_paciente, nome_dependente))
         conexao.commit()
@@ -224,6 +220,64 @@ def deletar_medico(id_medico):
     return redirect(url_for('tela_inicial'))
 
 # ====================================================
+# ROTAS DE HOSPITAIS E ATENDIMENTOS
+# ====================================================
+@app.route('/inserir_hospital', methods=['POST'])
+def inserir_hospital():
+    nome = request.form['nome']
+    cnpj = request.form['cnpj']
+    endereco = request.form['endereco']
+    telefone = request.form['telefone']
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("SELECT COALESCE(MAX(hospital_id), 0) + 1 FROM hospital;")
+        novo_id = cursor.fetchone()[0]
+
+        cursor.execute("""
+            INSERT INTO hospital (hospital_id, cnpj, nome, endereco, telefone) 
+            VALUES (%s, %s, %s, %s, %s);
+        """, (novo_id, cnpj, nome, endereco, telefone))
+        conexao.commit()
+    except errors.UniqueViolation:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro="Erro: Já existe um hospital cadastrado com este CNPJ!"))
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao cadastrar hospital: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+        
+    return redirect(url_for('tela_inicial'))
+
+@app.route('/vincular_hospital', methods=['POST'])
+def vincular_hospital():
+    medico_id = request.form['medico_id']
+    hospital_id = request.form['hospital_id']
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO atende (medico_id, hospital_id) 
+            VALUES (%s, %s);
+        """, (medico_id, hospital_id))
+        conexao.commit()
+    except errors.UniqueViolation:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro="Vínculo duplicado: Este médico já está cadastrado neste hospital!"))
+    except Exception as e:
+        conexao.rollback()
+        return redirect(url_for('tela_inicial', erro=f"Erro ao vincular médico: {e}"))
+    finally:
+        cursor.close()
+        conexao.close()
+        
+    return redirect(url_for('tela_inicial'))
+
+# ====================================================
 # ROTA DE CONSULTA
 # ====================================================
 @app.route('/inserir_consulta', methods=['POST'])
@@ -258,31 +312,26 @@ def inserir_consulta():
     return redirect(url_for('tela_inicial'))
 
 # ====================================================
-# ROTA PARA ATUALIZAR STATUS DA CONSULTA
+# ATUALIZAR STATUS DA CONSULTA (UPDATE)
 # ====================================================
 @app.route('/atualizar_status_consulta', methods=['POST'])
 def atualizar_status_consulta():
     consulta_id = request.form['consulta_id']
-    novo_status = request.form['status']
-
+    novo_status = request.form['novo_status'] # 'Agendada', 'Realizada' ou 'Cancelada'
+    
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # Executa a atualização respeitando a restrição CHECK do banco
-        cursor.execute("""
-            UPDATE consulta 
-            SET status = %s 
-            WHERE consulta_id = %s;
-        """, (novo_status, consulta_id))
+        cursor.execute("UPDATE consulta SET status = %s WHERE consulta_id = %s;", (novo_status, consulta_id))
         conexao.commit()
     except Exception as e:
         conexao.rollback()
-        return redirect(url_for('relatorios', erro=f"Erro ao atualizar status: {e}"))
+        return redirect(url_for('tela_inicial', erro=f"Erro ao atualizar: {e}"))
     finally:
         cursor.close()
         conexao.close()
         
-    return redirect(url_for('relatorios'))
+    return redirect(url_for('tela_inicial'))
 
 # ====================================================
 # ROTA DE PRESCRIÇÃO MÉDICA (Relação 1:1)
@@ -296,7 +345,6 @@ def inserir_prescricao():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     try:
-        # Pega o próximo ID disponível (simulando um auto-incremento)
         cursor.execute("SELECT COALESCE(MAX(presc_id), 0) + 1 FROM prescricao;")
         novo_id = cursor.fetchone()[0]
 
@@ -364,36 +412,71 @@ def inserir_pagamento():
         
     return redirect(url_for('tela_inicial'))
 
+from flask import render_template_string
+
 # ====================================================
-# ROTA DE RELATÓRIOS (ordenado por data e hora)
+# CENTRAL DE RELATÓRIOS (Master + Produtividade)
 # ====================================================
 @app.route('/relatorios')
 def relatorios():
     conexao = conectar_banco()
     cursor = conexao.cursor()
     
-    cursor.execute("""
-        SELECT consulta_id, data_hora, status, paciente, medico, especialidade 
-        FROM vw_consultas_detalhadas 
-        ORDER BY data_hora;
-    """)
-    view_consultas = cursor.fetchall()
-    
-    cursor.execute("""
-        SELECT m.nome, COUNT(c.consulta_id) AS total_consultas 
-        FROM consulta c
-        INNER JOIN medico m ON c.medico_id = m.medico_id
-        GROUP BY m.nome 
-        HAVING COUNT(c.consulta_id) > 1;
-    """)
-    medicos_sobrecarregados = cursor.fetchall()
-    
-    # Captura mensagens de erro específicas para a tela de relatórios
-    erro = request.args.get('erro') 
-    
-    cursor.close()
-    conexao.close()
-    return render_template('relatorios.html', consultas=view_consultas, sobrecarregados=medicos_sobrecarregados, erro=erro)
+    try:
+        # Mega Query (Junção de 9 Tabelas)
+        cursor.execute("""
+            SELECT 
+                c.consulta_id, 
+                TO_CHAR(c.data_hora, 'DD/MM/YYYY HH24:MI') AS data_hora, 
+                c.status,
+                p.nome AS paciente_nome,
+                CASE 
+                    WHEN conv.paciente_id IS NOT NULL THEN 'Conveniado (' || conv.nome_convenio || ')'
+                    WHEN part.paciente_id IS NOT NULL THEN 'Particular'
+                    ELSE 'Padrão'
+                END AS tipo_paciente,
+                m.nome AS medico_nome,
+                e.nome AS especialidade,
+                COALESCE(h.nome, 'Não vinculado') AS hospital,
+                COALESCE('R$ ' || pg.valor::text, 'Aguardando Pagamento') AS valor,
+                COALESCE(pg.metodo, '-') AS metodo,
+                COALESCE(pr.medicamento || ' (' || pr.dosagem || ')', 'Nenhuma') AS prescricao
+            FROM consulta c
+            INNER JOIN paciente p ON c.paciente_id = p.paciente_id
+            LEFT JOIN conveniado conv ON p.paciente_id = conv.paciente_id
+            LEFT JOIN particular part ON p.paciente_id = part.paciente_id
+            INNER JOIN medico m ON c.medico_id = m.medico_id
+            LEFT JOIN especialidade e ON m.espec_id = e.espec_id
+            LEFT JOIN hospital h ON m.hospital_id = h.hospital_id
+            LEFT JOIN pagamento pg ON c.consulta_id = pg.consulta_id
+            LEFT JOIN prescricao pr ON c.consulta_id = pr.consulta_id
+            ORDER BY c.data_hora DESC, c.consulta_id DESC;
+        """)
+        dados_master = cursor.fetchall()
+
+        # Relatório de Produtividade (Exigência de GROUP BY + HAVING)
+        cursor.execute("""
+            SELECT m.nome, COUNT(c.consulta_id) AS total_consultas
+            FROM medico m
+            JOIN consulta c ON m.medico_id = c.medico_id
+            GROUP BY m.medico_id, m.nome
+            HAVING COUNT(c.consulta_id) > 0
+            ORDER BY total_consultas DESC;
+        """)
+        sobrecarregados = cursor.fetchall()
+        
+    except Exception as e:
+        return f"Erro ao gerar relatórios: {e}"
+    finally:
+        cursor.close()
+        conexao.close()
+
+    erro = request.args.get('erro')
+
+    return render_template('relatorios.html', 
+                           dados_master=dados_master, 
+                           sobrecarregados=sobrecarregados,
+                           erro=erro)
 
 if __name__ == '__main__':
     app.run(debug=True)
